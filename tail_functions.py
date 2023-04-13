@@ -39,6 +39,7 @@ def power_law(x,a,b):
     return a*x**b
 ###########################################################################
 
+#Fit exponential tail with MLE
 def exp_tail(x,l):
     return np.exp(-l*x)
 
@@ -48,7 +49,7 @@ def mle_exp_lambda(x_sample):
 
 ###########################################################################
 
-'''Functions for Clauset et al paper'''
+'''Functions from Clauset et al paper'''
 
 #Get's the MLE power beta parameter
 def mle_pl_beta(x,x_min):

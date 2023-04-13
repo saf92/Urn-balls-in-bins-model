@@ -12,6 +12,7 @@ g: gamma value in urn model
 T: number of iterations
 '''
 
+#No binary tree - slower
 def nl_Polya_urn_stand(w0,w_add,g,T):
     N=len(w0)
     individuals=np.arange(0,N,1)
@@ -23,7 +24,7 @@ def nl_Polya_urn_stand(w0,w_add,g,T):
         w[i]+=w_add
     return w
 
-
+#With binary tree
 def nl_Polya_urn_stand_bt(w0,w_add,g,T):
     N=len(w0)
     powers = w0**g
@@ -78,37 +79,43 @@ def get_losing(w):
 
 #Predict wealth
 
-#g=1
+#g=1 ########################################
 #Function for expected wealth when g=1
 def expected_wealth_fit_pred_g1(t,w0,a):
     return w0*np.exp(a*t)
 
-#Function for different
+#Function for difference in sum of expected wealth and sum of simulated values
 def dif_sum_func_g1(t,total,w0,a):
     total1=np.sum(expected_wealth_fit_pred_g1(t,w0,a))
     return total-total1
 
+#Solve for t to minimise above sum
 def get_time_g1(init_t,total,w0,a):
     func = lambda t : total-np.sum(expected_wealth_fit_pred_g1(t,w0,a))
     return(fsolve(func,init_t)[0])
+#####################################################################
 
-#g>1
-
+#g>1 ###################################################################
+#Function for expected wealth when g>1
 def expected_wealth_fit_pred(t,w0,g,a):
     k=1/w0**(g-1)-(g-1)*a*t
     k1=k**(-1/(g-1)) #g>1
     return k1
 
+#Function for difference in sum of expected wealth and sum of simulated values
 def dif_sum_func(t,total,w0,g,a):
     total1=np.sum(expected_wealth_fit_pred(t,w0,g,a))
     return total-total1
 
+#Solve for t to minimise above sum
 def get_time(init_t,total,w0,g,a):
     func = lambda t : total-np.sum(expected_wealth_fit_pred(t,w0,g,a))
     return(fsolve(func,init_t)[0])
+##############################################################################
 
 ########################################
 
+#Find time to approximate expected wealth
 def find_t_g1(t_tests, w_fit, w0, fitness):
     t=0
     i=0
@@ -129,8 +136,7 @@ def find_t_g(t_tests, w_fit, w0, g, fitness):
 
 ###########################################################################################
 
-#Sum formula
-
+#Sum formula function
 def get_sum_p(g,t,w0,w_s):
     A=[[1]]
     p=[]
