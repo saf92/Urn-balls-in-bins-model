@@ -8,7 +8,8 @@ feedback function f(w)=aw^g.
 Parameters:
 w0: vector of initial wealth,
 w_add: wealth packet to be added at each simulation
-g: gamma value in urn model
+a: fitness value
+g: gamma value
 T: number of iterations
 '''
 
@@ -56,10 +57,21 @@ def nl_Polya_urn_stand_bt_fit(w0,w_add,a,g,T):
         R_tree = r_tree_update(R_tree, tree_pos, delta)
     return w
 
+#### Pure birth process that through exponential embedding produces the same model
+def pure_birth_process(w,w_add,a,g,T):
+    t=0
+    N=len(w)
+    for i in tqdm(range(T)):
+        f=a/w**g #feedback fn
+        jump_times=expon.rvs(scale=f,size=N)
+        j=np.argmin(jump_times)
+        t+=jump_times[j]
+        w[j]+=w_add
+    return w,t
+
 #####################################################################################################
 
 #Run urn model ns times and append each run to an array
-
 def nl_Polya_urn_mult_times(w0,w_add,g,T,ns):
     Ws=[]
     for i in range(ns):
@@ -69,7 +81,6 @@ def nl_Polya_urn_mult_times(w0,w_add,g,T,ns):
     return Ws
 
 #Produces new vector with largest value removed
-
 def get_losing(w):
     w1=np.sort(w)
     return w1[:-1]
@@ -156,3 +167,16 @@ def get_sum_p(g,t,w0,w_s):
             p_s=np.sum(A[i]*np.exp(-(j**g)*t))
             p.append(p_s)
     return w_v,A,p
+
+#Functions to approximate sum formula
+def master_approx(w_0,w,g,t):
+    return np.exp(-w_0**g*t)*(w_0/w)**g
+
+def master_approx1(w_0,w,g,t):
+    k=1
+    ks=[k]
+    for i in range(len(w)-1):
+        k=k*1/(1-(w_0/w[i+1])**g)
+        ks.append(k)
+    ks=np.asarray(ks,float)
+    return ks*np.exp(-w_0**g*t)*(w_0/w)**g

@@ -58,18 +58,14 @@ def mle_pl_beta(x,x_min):
 
 #Fit's the power law with MLE outputting parameters, predictions and index for inputted
 #minimum x value for sample fit
-def get_power_law_fit(data,x_min):
-    data_s=np.sort(data)
-    x,y=tail(data_s)
-    ind=find_nearest(data_s,x_min)
-    ind1=find_nearest(x,x_min)
-    x_sample=data_s[ind:]
-    x1=x[ind1:]
-    b=mle_pl_beta(x_sample,x_min)
-    a=y[ind1]*x_min**b
-    y_pred=power_law(x1,a,-b)
-    return x1,y_pred,a,b
-
+def get_power_law_fit(sample,x_m):
+    pl_sample=sample[sample>=x_m]
+    y_n=len(pl_sample)/len(sample)
+    x,y=tail(pl_sample)
+    beta=mle_pl_beta(pl_sample,x_m)
+    alpha=y_n*x_m**beta
+    y_pred=power_law(x,alpha,-beta)
+    return x,y_pred,alpha,beta
 
 #KS statistic
 def KS_stat(y,y_pred):
