@@ -10,15 +10,15 @@ w0: vector of initial wealth,
 w_add: wealth packet to be added at each simulation
 a: fitness value
 g: gamma value
-T: number of iterations
+iters: number of iterations
 '''
 
 #No binary tree - slower
-def nl_Polya_urn_stand(w0,w_add,g,T):
+def nl_Polya_urn_stand(w0,w_add,g,iters):
     N=len(w0)
     individuals=np.arange(0,N,1)
     w=w0.copy()
-    for t in range(T):
+    for t in range(iters):
         powers=w**g
         probs=powers/sum(powers)
         i=np.random.choice(individuals, 1, p=probs)[0]
@@ -26,12 +26,12 @@ def nl_Polya_urn_stand(w0,w_add,g,T):
     return w
 
 #With binary tree
-def nl_Polya_urn_stand_bt(w0,w_add,g,T):
+def nl_Polya_urn_stand_bt(w0,w_add,g,iters):
     N=len(w0)
     powers = w0**g
     R_tree = r_tree(powers)
     w=w0.copy()
-    for t in range(T):
+    for t in range(iters):
         s=R_tree[1]
         powers=w**g
         p=np.random.uniform(0,s)
@@ -42,12 +42,12 @@ def nl_Polya_urn_stand_bt(w0,w_add,g,T):
     return w
 
 #Urn simulation with binary search but with fitness as part of feedback function
-def nl_Polya_urn_stand_bt_fit(w0,w_add,a,g,T):
+def nl_Polya_urn_stand_bt_fit(w0,w_add,a,g,iters):
     N=len(w0)
     powers = a*w0**g
     R_tree = r_tree(powers)
     w=w0.copy()
-    for t in range(T):
+    for t in range(iters):
         s=R_tree[1]
         powers=a*w**g
         p=np.random.uniform(0,s)
@@ -58,16 +58,39 @@ def nl_Polya_urn_stand_bt_fit(w0,w_add,a,g,T):
     return w
 
 #### Pure birth process that through exponential embedding produces the same model
-def pure_birth_process(w,w_add,a,g,T):
-    t=0
-    N=len(w)
-    for i in tqdm(range(T)):
-        f=a/w**g #feedback fn
-        jump_times=expon.rvs(scale=f,size=N)
-        j=np.argmin(jump_times)
-        t+=jump_times[j]
-        w[j]+=w_add
-    return w,t
+
+#Single run of birth process
+def pure_birth_process_single(w,w_add,a,g,jt_max,w_max):
+    jump_time=0
+    while jump_time<jt_max and w<w_max:
+        f=a*w**(-g) #feedback fn
+        holding_time=expon.rvs(scale=f)
+        jump_time+=holding_time
+        w+=w_add
+    return w
+
+#Jump time of single run of birth process
+def pure_birth_process_single_t(w,w_add,a,g,w_max):
+    jump_time=0
+    while w<w_max:
+        f=a*w**(-g) #feedback fn
+        holding_time=expon.rvs(scale=f)
+        jump_time+=holding_time
+        w+=w_add
+    return jump_time
+
+#Mean of jump times
+def jump_time_runs(runs,w_add,a,g,w_max):
+    ts=[]
+    for i in range(runs):
+        w=1
+        t=pure_birth_process_single_t(w,w_add,a,g,w_max)
+        ts.append(t)
+    return np.mean(ts)
+
+#Lower bound for expected explosion time g>1
+def exp_expl_time(g):
+    return 1/(g-1)
 
 #####################################################################################################
 
@@ -77,7 +100,6 @@ def nl_Polya_urn_mult_times(w0,w_add,g,T,ns):
     for i in range(ns):
         W=nl_Polya_urn_stand_bt(w0,w_add,g,T)
         Ws.append(W)
-        print(i)
     return Ws
 
 #Produces new vector with largest value removed
@@ -127,6 +149,7 @@ def get_time(init_t,total,w0,g,a):
 ########################################
 
 #Find time to approximate expected wealth
+#g=1
 def find_t_g1(t_tests, w_fit, w0, fitness):
     t=0
     i=0
@@ -136,6 +159,7 @@ def find_t_g1(t_tests, w_fit, w0, fitness):
         d=dif_sum_func_g1(t_tests[i],np.sum(w_fit),w0,fitness)
     return t_tests[i-1]
 
+#g>1
 def find_t_g(t_tests, w_fit, w0, g, fitness):
     t=0
     i=0
@@ -147,7 +171,21 @@ def find_t_g(t_tests, w_fit, w0, g, fitness):
 
 ###########################################################################################
 
-#Sum formula function
+'''
+Sum formula function for mass function p_t(\omega)
+
+Inputs:
+g: gamma
+t: time t
+w0: initial value of w
+w_s: max w to go up to
+
+Outputs:
+w_v: vector of w
+A: array of vector of coefficients for each w
+p: prediction for p_t(\omega)
+'''
+
 def get_sum_p(g,t,w0,w_s):
     A=[[1]]
     p=[]
